@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speech to Text</title>
+    <style>
+        .hidden {
+            display: none;
+        }
+        .active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <h1>Speech to Text</h1>
+    <a href="{% url 'text_to_speech' %}">
+        <button type="button">Go to Text to Speech</button>
+    </a>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <button type="button" id="start-recording">Start Recording</button>
+        <button type="button" id="stop-recording">Stop Recording</button>
+    </form>
+    <p id="stt-transcription"></p>
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+
+        document.getElementById('start-recording').addEventListener('click', async () => {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            mediaRecorder.ondataavailable = event => {
+                audioChunks.push(event.data);
+            };
+            mediaRecorder.onstop = () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                const formData = new FormData();
+                formData.append('audio_file', audioBlob, 'audio.wav');
+                fetch('/stt/', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('stt-transcription').textContent = data.text;
+                });
+            };
+            mediaRecorder.start();
+        });
+
+        document.getElementById('stop-recording').addEventListener('click', () => {
+            mediaRecorder.stop();
+        });
+    </script>
+</body>
+</html>

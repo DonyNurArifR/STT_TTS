@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text to Speech</title>
+</head>
+<body>
+    <h1>Text to Speech</h1>
+
+    <!-- Navigation Button -->
+    <a href="{% url 'speech_to_text' %}">
+        <button type="button">Go to Speech to Text</button>
+    </a>
+
+    <form id="ttsForm" method="POST">
+        {% csrf_token %}
+        <textarea name="text" placeholder="Enter text..." required></textarea>
+        
+        <!-- Dropdown to select voice -->
+        <label for="voice">Choose a voice:</label>
+        <select name="voice" id="voice" required>            
+            <!-- Australian English Voices -->
+            <option value="en-AU-NatashaNeural">Natasha (AU)</option>
+            <option value="en-AU-WilliamNeural">WIlliam (AU)</option>
+            
+            <!-- Canada English Voices -->
+            <option value="en-CA-ClaraNeural">Clara (CA)</option>
+            <option value="en-CA-LiamNeural">Liam (CA)</option>
+            <option value="en-CA-ClaraNeural">Clara (CA)</option>
+
+            <!-- Hongkong English Voices -->
+            <option value="en-HK-SamNeural">Sam (HK)</option>
+            <option value="en-HK-YanNeural">Yan (HK)</option>
+
+            <!-- Indian English Voices -->
+            <option value="en-IN-NeerjaNeural">Neerja (IN)</option>
+            <option value="en-IN-PrabhatNeural">Prabhat (IN)</option>
+
+            <!-- Ireland ENglish Voices -->
+            <option value="en-IE-ConnorNeural">Connor (IE)</option>
+            <option value="en-IE-EmilyNeural">Emily (IE)</option>
+
+            <!-- Kenya English Voices -->
+            <option value="en-KE-AsiliaNeural">Connor (KE)</option>
+            <option value="en-KE-ChilembaNeural">Chilemba (KE)</option>
+
+            <!-- New Zealand English Voices -->
+            <option value="en-NZ-MitchellNeural">Mitchell (NZ)</option>
+            <option value="en-NZ-MollyNeural">Molly (NZ)</option>
+
+            <!-- Nigeria English Voices -->
+            <option value="en-NG-AbeoNeural">Abeo (NG)</option>
+            <option value="en-NG-EzinneNeural">Ezinne (NG)</option>
+
+            <!-- Philipina English Voices -->
+            <option value="en-PH-JamesNeural">James (PH)</option>
+            <option value="en-PH-RosaNeural">Rosa (PH)</option>
+
+            <!-- Singapore English Voices -->
+            <option value="en-SG-LunaNeural">Luna (SG)</option>
+            <option value="en-SG-WayneNeural">Wayne (SG)</option>
+
+            <!-- South Africa English Voices -->
+            <option value="en-ZA-LeahNeural">Leah (ZA)</option>
+            <option value="en-ZA-LukeNeural">Luke (ZA)</option>
+
+            <!-- Tanzania English Voices -->
+            <option value="en-TZ-ElimuNeural">Elimu (TZ)</option>
+            <option value="en-TZ-ImaniNeural">Imani (TZ)</option>
+            
+            <!-- Great Britain English Voices -->
+            <option value="en-GB-LibbyNeural">Libby (GB)</option>
+            <option value="en-GB-MaisieNeural">Maisie (GB)</option>
+            <option value="en-GB-RyanNeural">Ryan (GB)</option>
+            <option value="en-GB-SoniaNeural">Sonia (GB)</option>
+            <option value="en-GB-ThomasNeural">Thomas (GB)</option>
+
+            <!-- US English Voices -->
+            <option value="en-US-AriaNeural">Aria (US)</option>
+            <option value="en-US-AnaNeural">Ana (US)</option>
+            <option value="en-US-ChristopherNeural">Christopher (US)</option>
+            <option value="en-US-EricNeural">Eric (US)</option>
+            <option value="en-US-GuyNeural">Guy (US)</option>
+            <option value="en-US-JennyNeural">Jenny (US)</option>
+            <option value="en-US-MichelleNeural">Michelle (US)</option>
+            <option value="en-US-RogerNeural">Roger (US)</option>
+            <option value="en-US-SteffanNeural">Steffan (US)</option>
+
+            <!-- Hongkong Chinese Voice -->
+            <option value="zh-HK-HiuGaaiNeural">HiuGaai (zh-HK)</option>
+            <option value="zh-HK-HiuMaanNeural">HiuMaan (zh-HK)</option>
+            <option value="zh-HK-WanLungNeural">WanLung (zh-HK)</option>
+
+            <!-- China Chinese Voice -->
+            <option value="zh-CN-XiaoxiaoNeural">Xiaoxiao (zh-CN)</option>
+            <option value="zh-CN-XiaoyiNeural">Xiaoyi (zh-CN)</option>
+            <option value="zh-CN-YunjianNeural">Yunjian (zh-CN)</option>
+            <option value="zh-CN-YunziNeural">Yunzi (zh-CN)</option>
+            <option value="zh-CN-YunxianNeural">Yunxian (zh-CN)</option>
+            <option value="zh-CN-YunyangNeural">Yunyang (zh-CN)</option>
+            <option value="zh-CN-liaoning-XiaobeiNeural">liaoning-Xiaobei (zh-CN)</option>
+            <option value="zh-CN-shaanxi-XiaoniNeural">shaanxi-Xiaoni (zh-CN)</option>
+            
+            <!-- Taiwan Chinese Voice -->
+            <option value="zh-TW-HsiaoChenNeural">HsiaoChen (zh-TW)</option>
+            <option value="zh-TW-YunJheNeural">YunJhe (zh-TW)</option>
+            <option value="zh-TW-HsiaoYuNeural">HsiaoYu (zh-TW)</option>
+            
+        </select>
+
+        <button type="submit">Convert to Speech</button>
+    </form>
+
+    <audio id="audioPlayer" controls style="display:none;">
+        <source id="audioSource" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+
+    <script>
+        document.getElementById('ttsForm').onsubmit = async function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+
+            try {
+                const response = await fetch("{% url 'text_to_speech' %}", {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const audioPlayer = document.getElementById('audioPlayer');
+                    const audioSource = document.getElementById('audioSource');
+                    const audioBlob = await response.blob();
+                    const audioUrl = URL.createObjectURL(audioBlob);
+
+                    audioSource.src = audioUrl;
+                    audioPlayer.style.display = 'block';
+                    audioPlayer.load();
+                    audioPlayer.play();
+                } else {
+                    alert('Error generating speech');
+                }
+            } catch (error) {
+                console.error('An error occurred:', error);
+                alert('Failed to generate speech. Please try again.');
+            }
+        };
+    </script>
+</body>
+</html>
