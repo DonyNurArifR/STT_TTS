@@ -20,6 +20,10 @@
     </a>
     <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
+        <select name="language" id="language" required>            
+            <option value="en">English</option>
+            <option value="zh">Chinese</option>
+        </select>
         <button type="button" id="start-recording">Start Recording</button>
         <button type="button" id="stop-recording">Stop Recording</button>
     </form>
@@ -29,6 +33,7 @@
         let audioChunks = [];
 
         document.getElementById('start-recording').addEventListener('click', async () => {
+            audioChunks = [];
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             mediaRecorder = new MediaRecorder(stream);
             mediaRecorder.ondataavailable = event => {
@@ -38,6 +43,7 @@
                 const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
                 const formData = new FormData();
                 formData.append('audio_file', audioBlob, 'audio.wav');
+                formData.append('language', document.getElementById('language').value);
                 fetch('/stt/', {
                     method: 'POST',
                     body: formData,

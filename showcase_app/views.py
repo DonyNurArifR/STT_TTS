@@ -25,6 +25,7 @@ def stt_view(request):
         return render(request, 'showcase/stt.html')  # Ensure this path is correct and the template exists
     elif request.method == 'POST':
         audio_file = request.FILES.get('audio_file')
+        language = request.POST.get('language', 'en')
         if audio_file:
             recognizer = sr.Recognizer()
             try:
@@ -33,7 +34,7 @@ def stt_view(request):
                 with sr.AudioFile(audio_data) as source:
                     audio_data = recognizer.record(source)
                     # Use recognize_whisper method for STT
-                    text = recognizer.recognize_whisper(audio_data)
+                    text = recognizer.recognize_whisper(audio_data, language=language)
                     return JsonResponse({'text': text})
             except sr.UnknownValueError:
                 return JsonResponse({'text': "Whisper could not understand the audio."})
@@ -48,7 +49,6 @@ async def text_to_speech(request):
     if request.method == 'POST':
         text = request.POST.get('text')
         voice = request.POST.get('voice', 'en-US-JennyNeural')
-        print(f"Requested voice: {voice}") 
         if text:
             tts = edge_tts.Communicate(text, voice=voice)
             audio_stream = bytearray()  # Collect audio data
@@ -58,9 +58,6 @@ async def text_to_speech(request):
                 async for chunk in tts.stream():
                     if "data" in chunk:
                         audio_stream.extend(chunk["data"])
-
-                # Debug: Check the size of the generated audio
-                print(f"Generated audio size: {len(audio_stream)} bytes")
 
                 if len(audio_stream) == 0:
                     return JsonResponse({'error': 'Audio generation failed, no data.'})
