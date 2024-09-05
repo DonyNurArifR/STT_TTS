@@ -11,6 +11,10 @@
         .active {
             display: block;
         }
+        .disabled {
+            opacity: 0.6;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
@@ -18,49 +22,79 @@
     <a href="{% url 'text_to_speech' %}">
         <button type="button">Go to Text to Speech</button>
     </a>
-    <form method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        <select name="language" id="language" required>            
+    <div>
+        <label for="language">Select Language:</label>
+        <select name="language" id="language" required>
             <option value="en">English</option>
             <option value="zh">Chinese</option>
         </select>
-        <button type="button" id="start-recording">Start Recording</button>
-        <button type="button" id="stop-recording">Stop Recording</button>
-    </form>
+    </div>
+    <button type="button" id="start-recording">Start Recording</button>
+    <button type="button" id="stop-recording" class="disabled">Stop Recording</button>
     <p id="stt-transcription"></p>
+    <p id="loading" class="hidden">Processing...</p>
+
     <script>
         let mediaRecorder;
         let audioChunks = [];
 
-        document.getElementById('start-recording').addEventListener('click', async () => {
+        const startButton = document.getElementById('start-recording');
+        const stopButton = document.getElementById('stop-recording');
+        const transcriptionElement = document.getElementById('stt-transcription');
+        const loadingElement = document.getElementById('loading');
+
+        startButton.addEventListener('click', async () => {
             audioChunks = [];
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream);
-            mediaRecorder.ondataavailable = event => {
-                audioChunks.push(event.data);
-            };
-            mediaRecorder.onstop = () => {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                const formData = new FormData();
-                formData.append('audio_file', audioBlob, 'audio.wav');
-                formData.append('language', document.getElementById('language').value);
-                fetch('/stt/', {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('stt-transcription').textContent = data.text;
-                });
-            };
-            mediaRecorder.start();
+            transcriptionElement.textContent = '';
+            loadingElement.classList.add('hidden');
+            stopButton.classList.remove('disabled');
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks.push(event.data);
+                };
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    const formData = new FormData();
+                    formData.append('audio_file', audioBlob, 'audio.wav');
+                    formData.append('language', document.getElementById('language').value);
+                    
+                    loadingElement.classList.remove('hidden');
+                    
+                    fetch('/stt/', {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        loadingElement.classList.add('hidden');
+                        transcriptionElement.textContent = data.text || 'Transcription failed. Please try again.';
+                    })
+                    .catch(error => {
+                        loadingElement.classList.add('hidden');
+                        transcriptionElement.textContent = 'An error occurred. Please try again.';
+                        console.error('Error:', error);
+                    });
+                };
+                mediaRecorder.start();
+                startButton.classList.add('disabled');
+            } catch (error) {
+                transcriptionElement.textContent = 'Could not start recording: ' + error.message;
+                console.error('Error:', error);
+            }
         });
 
-        document.getElementById('stop-recording').addEventListener('click', () => {
-            mediaRecorder.stop();
+        stopButton.addEventListener('click', () => {
+            if (mediaRecorder && mediaRecorder.state !== "inactive") {
+                mediaRecorder.stop();
+                startButton.classList.remove('disabled');
+                stopButton.classList.add('disabled');
+            }
         });
     </script>
 </body>

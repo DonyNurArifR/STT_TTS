@@ -6,14 +6,15 @@ import edge_tts
 import asyncio
 import io
 
-
 def convert_to_wav(audio_file):
-    audio = AudioSegment.from_file(audio_file)
-    output = io.BytesIO()
-    audio.export(output, format="wav", codec="pcm_s16le")
-    output.seek(0)
-    return output
-
+    try:
+        audio = AudioSegment.from_file(audio_file)
+        output = io.BytesIO()
+        audio.export(output, format="wav", codec="pcm_s16le")
+        output.seek(0)
+        return output
+    except Exception as e:
+        raise ValueError(f"Could not convert to WAV: {e}")
 
 def stt_view(request):
     if request.method == 'GET':
@@ -21,22 +22,31 @@ def stt_view(request):
     elif request.method == 'POST':
         audio_file = request.FILES.get('audio_file')
         language = request.POST.get('language', 'en')
-        if audio_file:
+        
+        if not audio_file:
+            return JsonResponse({'error': 'No audio file provided'}, status=400)
+        
+        if not audio_file.content_type.startswith('audio/'):
+            return JsonResponse({'error': 'Invalid file type, audio required'}, status=400)
+        
+        try:
             recognizer = sr.Recognizer()
-            try:
-                audio_data = convert_to_wav(audio_file)
-                with sr.AudioFile(audio_data) as source:
-                    audio_data = recognizer.record(source)
-                    text = recognizer.recognize_whisper(audio_data, language=language)
-                    return JsonResponse({'text': text})
-            except sr.UnknownValueError:
-                return JsonResponse({'text': "Whisper could not understand the audio."})
-            except sr.RequestError as e:
-                return JsonResponse({'text': f"Could not request results from Whisper service; {e}"})
-            except ValueError as e:
-                return JsonResponse({'text': f"Error processing audio file; {e}"})
-        return JsonResponse({'error': 'No audio file provided'}, status=400)
+            audio_data = convert_to_wav(audio_file)
+            
+            with sr.AudioFile(audio_data) as source:
+                audio_data = recognizer.record(source)
+                text = recognizer.recognize_whisper(audio_data, language=language)
+                return JsonResponse({'text': text})
+        
+        except sr.UnknownValueError:
+            return JsonResponse({'text': "Whisper could not understand the audio."})
+        except sr.RequestError as e:
+            return JsonResponse({'text': f"Could not request results from Whisper service; {e}"})
+        except ValueError as e:
+            return JsonResponse({'text': f"Error processing audio file; {e}"})
+    
     return JsonResponse({'error': 'Invalid request method'}, status=400)
+
 
 async def text_to_speech(request):
     if request.method == 'POST':
