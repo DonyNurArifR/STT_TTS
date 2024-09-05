@@ -50,9 +50,9 @@ sqlparse==0.5.1
 sympy==1.13.2
 tiktoken==0.7.0
 tk==0.1.0
-torch==2.4.1+cpu
-torchaudio==2.4.1+cpu
-torchvision==0.19.1+cpu
+torch==2.4.1
+torchaudio==2.4.1
+torchvision==0.19.1
 tqdm==4.66.5
 triton==2.3.1
 typing_extensions==4.12.2
