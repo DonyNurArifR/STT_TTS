@@ -37,7 +37,6 @@ SpeechRecognition==3.10.4
 sqlparse==0.5.1
 sympy==1.13.2
 tiktoken==0.7.0
-tk==0.1.0
 torch==2.4.1
 torchaudio==2.4.1
 torchvision==0.19.1
